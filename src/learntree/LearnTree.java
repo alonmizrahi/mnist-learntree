@@ -177,11 +177,13 @@ public class LearnTree {
 		System.out.println("size: " + tree.internalNodes);
 		
 		try {
-			TreeWriter.write(tree.root, args[4]);
+			TreeReaderWriter.write(tree.root, args[4]);
 		} catch(RuntimeException e) {
 			System.err.println(e.getMessage());
 		}
 		
+		PixelCondition cond = (PixelCondition)tree.root.condition;
+		System.out.println("wrote tree with root x,y: " + cond.x + "," + cond.y);
 		System.out.println("took " + (System.currentTimeMillis() - start) / 1000 + " sec.");
 	}
 }
