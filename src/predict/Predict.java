@@ -32,9 +32,9 @@ public class Predict {
 	}
 	
 	public static void main(String[] args) {
-		args = new String[2];
+		/*args = new String[2];
 		args[0] = "output_tree.tree";
-		args[1] = "mnist_test.csv";
+		args[1] = "mnist_test.csv";*/
 		
 		if(args.length != 2) {
 			System.err.println("predict <tree_filename> <testset_filename>");
