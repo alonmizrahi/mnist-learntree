@@ -83,13 +83,13 @@ public class LearnTree {
 	
 	public static void main(String[] args) {
 		long start = System.currentTimeMillis();
-		args = new String[5];
+		/*args = new String[5];
 		args[0] = "1";
 		args[1] = "10"; // validation percentage
 		args[2] = "15"; // max L
 		args[3] = "mnist_train.csv";
 		args[4] = "output_tree.tree";
-		
+		*/
 		if(args.length != 5) {
 			System.out.println("learntree <1/2> <P> <L> <trainingset_filename> <outputtree_filename>");
 			return;
