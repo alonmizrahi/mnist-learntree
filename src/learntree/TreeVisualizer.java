@@ -23,12 +23,8 @@ public class TreeVisualizer {
 		sb.append(nodeToString(n) + 
 				" [shape=\"" + (n.isLeaf() ? LEAF_SHAPE : INTERIOR_SHAPE) + "\",label=\"");
 		
-		if(!n.isLeaf()) { // interior
-			if(n.condition instanceof PixelCondition) {
-				PixelCondition cond = (PixelCondition)n.condition;
-				sb.append("[" + cond.x + "][" + cond.y + "] "
-						+ (cond.biggerThan ? "\\>" : "\\<=") + " " + cond.threshold + "\\n");
-			}
+		if(!n.isLeaf()) { // internal node
+			sb.append(n.condition.getClass().getSimpleName() + "\\n");
 		}
 		sb.append("samples = " + n.samples + "\\n");
 		sb.append("values = [");

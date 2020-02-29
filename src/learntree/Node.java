@@ -1,14 +1,12 @@
 package learntree;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class Node implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private static final double LOG_OF_2 = Math.log(2.0); // calculate only once
-	
+
 	public int samples;
 	public int[] values;
 	public Condition condition; // the condition with the highest IG
@@ -17,13 +15,17 @@ public class Node implements Serializable {
 	public Node left, right;
 	
 	// leaf
-	public List<Integer> examples;
+	public int[] examples;
 	public int label;
 	public double entropy;
 	public double weightedEntropy;
 	public double IG;
 	public double weightedIG; // will decide which leaf to diverge next
-	
+
+	// optimization
+	private Node tempLeft, tempRight;
+	private int condLeftSamples, condRightSamples;
+
 	// initiates as leaf node
 	public Node() {
 		// all nodes
@@ -36,19 +38,23 @@ public class Node implements Serializable {
 		this.right = null;
 
 		// leaf node
-		this.examples = new LinkedList<Integer>();
+		this.examples = null;
 		this.label = 0;
 		this.entropy = 0.0;
 		this.weightedEntropy = 0.0;
 		this.IG = 0.0;
 		this.weightedIG = 0.0;
+
+		// optimization
+		this.tempLeft = null;
+		this.tempRight = null;
 	}
 	
 	public boolean isLeaf() {
 		return this.left == null && this.right == null;
 	}
 	
-	public boolean diverge(int[][] data, ArrayList<Condition> conditions) {
+	public boolean diverge(ArrayList<Condition> conditions) {
 		if(this.entropy == 0.0 || this.weightedIG == 0.0 || this.condition == null) // no need to diverge
 			return false;
 		
@@ -56,26 +62,33 @@ public class Node implements Serializable {
 		right = new Node();
 		
 		// iterate over examples that go through this leaf
-		for(Integer exampleIndex : examples) {
-			if( condition.ask(data[exampleIndex]) ){
-				right.samples++;
-				right.values[data[exampleIndex][0]]++;
-				right.examples.add(exampleIndex);
+		int leftIndex = 0, rightIndex = 0;
+		right.samples = condRightSamples;
+		right.examples = new int[right.samples];
+		left.samples = condLeftSamples;
+		left.examples = new int[left.samples];
+
+		for(int i = 0; i < examples.length; i++) {
+			int exampleIndex = examples[i];
+			if(condition.answersYesTo(exampleIndex)) {
+				right.values[Condition.exampleToLabel[exampleIndex]]++;
+				right.examples[rightIndex] = exampleIndex;
+				rightIndex++;
 			}
 			else {
-				left.samples++;
-				left.values[data[exampleIndex][0]]++;
-				left.examples.add(exampleIndex);
+				left.values[Condition.exampleToLabel[exampleIndex]]++;
+				left.examples[leftIndex] = exampleIndex;
+				leftIndex++;
 			}
 		}
 		
 		left.calcEntropy();
 		left.calcLabel();
-		left.calcCondition(data, conditions);
+		left.calcCondition(conditions);
 		right.calcEntropy();
 		right.calcLabel();
-		right.calcCondition(data, conditions);
-		
+		right.calcCondition(conditions);
+
 		// set leaf parameters to invalid values
 		examples = null;
 		label = -1;
@@ -87,31 +100,37 @@ public class Node implements Serializable {
 		return true;
 	}
 	
-	public void calcCondition(int[][] data, ArrayList<Condition> conditions) {
+	public void calcCondition(ArrayList<Condition> conditions) {
 		if(this.entropy == 0.0) // no need to diverge this leaf anymore
 			return;
-		
-		Node tempLeft = new Node();
-		Node tempRight = new Node();
+
+		if(this.tempLeft == null) {
+			tempLeft = new Node();
+			tempRight = new Node();
+		}
 		
 		this.condition = null; // the condition with the highest IG
 		this.IG = 0.0;
 		
-		for(Condition cond : conditions) {
+		for(int iCond = 0; iCond < conditions.size(); iCond++) {
+			Condition cond = conditions.get(iCond);
 			tempLeft.samples = 0;
-			tempLeft.values = new int[10];
 			tempRight.samples = 0;
-			tempRight.values = new int[10];
-			
+			for(int i = 0; i < 10; i++) {
+				tempLeft.values[i] = 0;
+				tempRight.values[i] = 0;
+			}
+
 			// iterate over examples that go through this leaf
-			for(Integer exampleIndex : this.examples) {
-				if( cond.ask(data[exampleIndex]) ){
+			for(int i = 0; i < examples.length; i++) {
+				int exampleIndex = examples[i];
+				if(cond.answersYesTo(exampleIndex)) {
 					tempRight.samples++;
-					tempRight.values[data[exampleIndex][0]]++;
+					tempRight.values[Condition.exampleToLabel[exampleIndex]]++;
 				}
 				else {
 					tempLeft.samples++;
-					tempLeft.values[data[exampleIndex][0]]++;
+					tempLeft.values[Condition.exampleToLabel[exampleIndex]]++;
 				}
 			}
 			
@@ -130,9 +149,11 @@ public class Node implements Serializable {
 			if(newIG > this.IG) {
 				this.IG = newIG;
 				this.condition = cond;
+				this.condLeftSamples = tempLeft.samples;
+				this.condRightSamples = tempRight.samples;
 			}
 		}
-		
+
 		this.weightedIG = this.IG  * (double)this.samples;
 	}
 	
